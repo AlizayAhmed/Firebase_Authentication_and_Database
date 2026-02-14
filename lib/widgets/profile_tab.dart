@@ -1,9 +1,10 @@
 // widgets/profile_tab.dart
 import 'package:flutter/material.dart';
 
-class ProfileTab extends StatelessWidget {
+class ProfileTab extends StatefulWidget {
   final String userName;
   final String userEmail;
+  final String? userPhotoUrl;
   final VoidCallback onLogout;
   final Function(String) onUsernameUpdate;
 
@@ -11,361 +12,287 @@ class ProfileTab extends StatelessWidget {
     Key? key,
     required this.userName,
     required this.userEmail,
+    this.userPhotoUrl,
     required this.onLogout,
     required this.onUsernameUpdate,
   }) : super(key: key);
 
   @override
+  State<ProfileTab> createState() => _ProfileTabState();
+}
+
+class _ProfileTabState extends State<ProfileTab> {
+  final _nameController = TextEditingController();
+  bool _isEditing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController.text = widget.userName;
+  }
+
+  @override
+  void didUpdateWidget(ProfileTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userName != widget.userName) {
+      _nameController.text = widget.userName;
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  void _saveUsername() {
+    final newName = _nameController.text.trim();
+    if (newName.isNotEmpty && newName != widget.userName) {
+      widget.onUsernameUpdate(newName);
+    }
+    setState(() => _isEditing = false);
+  }
+
+  void _cancelEdit() {
+    _nameController.text = widget.userName;
+    setState(() => _isEditing = false);
+  }
+
+  String _getInitials() {
+    final nameParts = widget.userName.trim().split(' ');
+    if (nameParts.isEmpty) return '?';
+    if (nameParts.length == 1) {
+      return nameParts[0][0].toUpperCase();
+    }
+    return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(24),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const SizedBox(height: 20),
-          // Profile Picture with user's initials
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [
-                  Colors.purpleAccent.withOpacity(0.8),
-                  Colors.blueAccent.withOpacity(0.8),
-                ],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.purpleAccent.withOpacity(0.3),
-                  blurRadius: 20,
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
-            child: CircleAvatar(
-              radius: 60,
-              backgroundColor: const Color(0xFF1D1E33),
-              child: Text(
-                _getInitials(userName),
-                style: const TextStyle(
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.purpleAccent,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          // User's actual name
-          Text(
-            userName,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          // Username from email
-          Text(
-            '@${userEmail.split('@')[0]}',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.white.withOpacity(0.6),
-            ),
-          ),
-          const SizedBox(height: 30),
-          // Account Information Section
-          _buildSectionHeader('Account Information'),
-          const SizedBox(height: 12),
-          // Email
-          _buildInfoCard(
-            icon: Icons.email,
-            title: 'Email',
-            content: userEmail,
-          ),
-          const SizedBox(height: 12),
-          // Member since
-          _buildInfoCard(
-            icon: Icons.calendar_today,
-            title: 'Member Since',
-            content: _getMemberSince(),
-          ),
-          const SizedBox(height: 12),
-          // Account Status
-          _buildInfoCard(
-            icon: Icons.verified_user,
-            title: 'Account Status',
-            content: 'Active',
-            subtitle: 'Your account is in good standing',
-          ),
-          const SizedBox(height: 30),
-          // Quick Actions Section
-          _buildSectionHeader('Quick Actions'),
-          const SizedBox(height: 12),
-          _buildActionButton(
-            context,
-            icon: Icons.edit,
-            label: 'Edit Username',
-            color: Colors.blueAccent,
-            onTap: () => _showEditUsernameDialog(context),
-          ),
-          const SizedBox(height: 12),
-          _buildActionButton(
-            context,
-            icon: Icons.logout,
-            label: 'Logout',
-            color: Colors.redAccent,
-            onTap: onLogout,
-          ),
-          const SizedBox(height: 30),
+          
+          // Profile Avatar
+          _buildProfileAvatar(),
+          
+          const SizedBox(height: 32),
+          
+          // Profile Information Card
+          _buildProfileCard(),
+          
+          const SizedBox(height: 16),
+          
+          // Account Actions
+          _buildAccountActions(),
+          
+          const SizedBox(height: 32),
+          
+          // Logout Button
+          _buildLogoutButton(),
         ],
       ),
     );
   }
 
-  void _showEditUsernameDialog(BuildContext context) {
-    final TextEditingController nameController = TextEditingController(text: userName);
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1D1E33),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.purpleAccent.withOpacity(0.3),
-                    Colors.blueAccent.withOpacity(0.3),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.edit,
-                color: Colors.purpleAccent,
-                size: 24,
-              ),
+  Widget _buildProfileAvatar() {
+    return Stack(
+      children: [
+        Container(
+          width: 120,
+          height: 120,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.blue.shade400,
+                Colors.blue.shade700,
+              ],
             ),
-            const SizedBox(width: 12),
-            const Text(
-              'Edit Username',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            ),
-          ],
-        ),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: nameController,
-                autofocus: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'New Username',
-                  labelStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
-                  prefixIcon: Icon(
-                    Icons.person_outline,
-                    color: Colors.purpleAccent.withOpacity(0.7),
-                  ),
-                  filled: true,
-                  fillColor: const Color(0xFF111328),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide(
-                      color: Colors.purpleAccent.withOpacity(0.5),
-                      width: 2,
-                    ),
-                  ),
-                  errorBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: const BorderSide(color: Colors.redAccent),
-                  ),
-                  focusedErrorBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: const BorderSide(color: Colors.redAccent, width: 2),
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a username';
-                  }
-                  if (value.trim().length < 2) {
-                    return 'Username must be at least 2 characters';
-                  }
-                  if (value.trim() == userName) {
-                    return 'Please enter a different username';
-                  }
-                  return null;
-                },
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.shade200,
+                blurRadius: 20,
+                offset: const Offset(0, 10),
               ),
             ],
           ),
+          child: widget.userPhotoUrl != null
+              ? ClipOval(
+                  child: Image.network(
+                    widget.userPhotoUrl!,
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Center(
+                        child: Text(
+                          _getInitials(),
+                          style: const TextStyle(
+                            fontSize: 48,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                )
+              : Center(
+                  child: Text(
+                    _getInitials(),
+                    style: const TextStyle(
+                      fontSize: 48,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: Colors.white.withOpacity(0.6)),
+        Positioned(
+          bottom: 0,
+          right: 0,
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.green.shade500,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 3),
+            ),
+            child: const Icon(
+              Icons.check,
+              color: Colors.white,
+              size: 16,
             ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                final newName = nameController.text.trim();
-                Navigator.pop(context);
-                onUsernameUpdate(newName);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purpleAccent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-            child: const Text(
-              'Save',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  String _getInitials(String name) {
-    if (name.isEmpty) return '?';
-    
-    List<String> parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
-    return name[0].toUpperCase();
-  }
-
-  String _getMemberSince() {
-    final now = DateTime.now();
-    final months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return '${months[now.month - 1]} ${now.year}';
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Colors.white.withOpacity(0.9),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoCard({
-    required IconData icon,
-    required String title,
-    required String content,
-    String? subtitle,
-  }) {
+  Widget _buildProfileCard() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1D1E33),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-          width: 1,
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(16.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.purpleAccent.withOpacity(0.3),
-                  Colors.blueAccent.withOpacity(0.3),
-                ],
+          // Name Section
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 12,
+            ),
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(12),
               ),
-              borderRadius: BorderRadius.circular(10),
+              child: Icon(
+                Icons.person_outline,
+                color: Colors.blue.shade700,
+              ),
             ),
-            child: Icon(
-              icon,
-              color: Colors.purpleAccent,
-              size: 24,
+            title: const Text(
+              'Full Name',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white.withOpacity(0.6),
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  content,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                  ),
-                ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white.withOpacity(0.5),
-                      fontStyle: FontStyle.italic,
+            subtitle: _isEditing
+                ? TextField(
+                    controller: _nameController,
+                    autofocus: true,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(vertical: 8),
+                    ),
+                  )
+                : Text(
+                    widget.userName,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
                     ),
                   ),
-                ],
-              ],
+            trailing: _isEditing
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.red),
+                        onPressed: _cancelEdit,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.check, color: Colors.green),
+                        onPressed: _saveUsername,
+                      ),
+                    ],
+                  )
+                : IconButton(
+                    icon: Icon(
+                      Icons.edit_outlined,
+                      color: Colors.blue.shade600,
+                    ),
+                    onPressed: () => setState(() => _isEditing = true),
+                  ),
+          ),
+          Divider(color: Colors.grey.shade200, height: 1),
+          
+          // Email Section
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 12,
+            ),
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.email_outlined,
+                color: Colors.green.shade700,
+              ),
+            ),
+            title: const Text(
+              'Email Address',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            subtitle: Text(
+              widget.userEmail,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A1A1A),
+              ),
             ),
           ),
         ],
@@ -373,57 +300,129 @@ class ProfileTab extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton(
-    BuildContext context, {
+  Widget _buildAccountActions() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildActionTile(
+            icon: Icons.security_outlined,
+            iconColor: Colors.purple.shade700,
+            iconBgColor: Colors.purple.shade50,
+            title: 'Privacy & Security',
+            subtitle: 'View app permissions',
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('App Permissions Info'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text('This app uses the following permissions:'),
+                      SizedBox(height: 12),
+                      ListTile(
+                        leading: Icon(Icons.language, color: Colors.blue),
+                        title: Text('Internet'),
+                        subtitle: Text('Required to fetch and sync your data with the cloud.'),
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.sd_storage, color: Colors.green),
+                        title: Text('Storage'),
+                        subtitle: Text('Used to cache your profile and tasks for faster access.'),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionTile({
     required IconData icon,
-    required String label,
-    required Color color,
+    required Color iconColor,
+    required Color iconBgColor,
+    required String title,
+    required String subtitle,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(15),
-      child: Container(
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 12,
+      ),
+      leading: Container(
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: const Color(0xFF1D1E33),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(
-            color: color.withOpacity(0.3),
-            width: 1,
+          color: iconBgColor,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: iconColor),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF1A1A1A),
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          fontSize: 14,
+          color: Colors.grey.shade600,
+        ),
+      ),
+      trailing: Icon(
+        Icons.chevron_right,
+        color: Colors.grey.shade400,
+      ),
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: OutlinedButton.icon(
+        onPressed: widget.onLogout,
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: Colors.red.shade300),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Colors.white.withOpacity(0.4),
-            ),
-          ],
+        icon: Icon(Icons.logout, color: Colors.red.shade700),
+        label: Text(
+          'Logout',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.red.shade700,
+          ),
         ),
       ),
     );
