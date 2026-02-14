@@ -49,7 +49,7 @@ A professional Flutter app with **Firebase Authentication** (Email/Password + Go
 
 ---
 
-## 📂 Updated Project Structure (2026)
+## 📂 Project Structure 
 
 ```
 lib/
@@ -160,31 +160,6 @@ service cloud.firestore {
 - **Google Sign-In**: ^6.2.2
 - **Shared Preferences**: ^2.3.3
 - **HTTP**: ^1.1.0
-
----
-
-## 📂 Project Structure
-
-```
-lib/
-├── firebase_options.dart                # Firebase config (auto-generated)
-├── main.dart                            # App entry point with Firebase initialization
-├── models/
-│   ├── app_user.dart                    # Firebase user model
-│   ├── user_model.dart                  # API user model (Week 4)
-│   └── todo_model.dart                  # Task model with Firestore support
-├── screens/
-│   ├── login_screen.dart                # Login page with email & Google sign-in
-│   ├── signup_screen.dart               # Registration page
-│   └── user_profile_page.dart           # Profile & tasks (Firestore-powered)
-├── services/
-│   ├── api_service.dart                 # API requests (Week 4)
-│   ├── firebase_auth_service.dart       # Authentication logic
-│   └── firestore_service.dart           # Database operations
-└── widgets/
-    ├── profile_tab.dart                 # User profile UI (now with permissions dialog)
-    └── tasks_tab.dart                   # Task management UI
-```
 
 ---
 
@@ -434,22 +409,6 @@ flutter run -d ios
 
 ---
 
-## 📸 Screenshots
-
-### Login Screen
-![Login Screen](screenshots/login.png)
-
-### Sign Up Screen
-![Sign Up Screen](screenshots/signup.png)
-
-### Profile Tab
-![Profile Tab](screenshots/profile.png)
-
-### Tasks Tab
-![Tasks Tab](screenshots/tasks.png)
-
----
-
 ## 📚 Learning Outcomes
 
 ### Week 5 (Current)
@@ -502,15 +461,6 @@ This project is for educational purposes as part of a Flutter internship program
 3. Commit your changes
 4. Push to the branch
 5. Open a Pull Request
-
----
-
-## 📞 Support
-
-If you encounter any issues:
-1. Check the troubleshooting section above
-2. Review Firebase documentation
-3. Open an issue on GitHub
 
 ---
 
